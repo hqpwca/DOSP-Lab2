@@ -59,7 +59,7 @@ defmodule Gossip.Node do
 			ns = s + ms
 			nw = w + mw
 			target = Enum.random(neighbors)
-			if new_times <= 3 do
+			if new_times <= 3 && !fail do
 				send_message(target, ns/2, nw/2, nstep)
 			else
 				Gossip.Algorithms.finish(id, nstep)
