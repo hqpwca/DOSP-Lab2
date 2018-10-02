@@ -28,7 +28,7 @@ defmodule Gossip.Node do
 	end
 
 	def handle_cast({:message, ms, mw, tstep}, {type, id, s, w, times, neighbors, step, fail}) do
-		#IO.inspect({:message, ms, mw, tstep, id, s, w})
+		#IO.inspect({:message, ms, mw, tstep, id, s, w, times})
 		nstep = Kernel.max(step, tstep + 1)
 		if type == :gossip do
 			subname = "subprocess"<> Integer.to_string(id) |> String.to_atom()
