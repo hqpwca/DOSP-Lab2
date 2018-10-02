@@ -1,12 +1,12 @@
 defmodule Gossip.Algorithms do
 	use GenServer
 
-	def start_link(n) do
-		GenServer.start_link(__MODULE__, {n, Map.new, Map.new, 0}, name: {:global, :main})
+	def start_link(n, topo) do
+		GenServer.start_link(__MODULE__, {topo, n, Map.new, Map.new, 0}, name: {:global, :main})
 	end
 
 	def program_start() do
-		GenServer.call({:global, :main}, {:start})
+		GenServer.cast({:global, :main}, {:start})
 	end
 
 	def program_finish(step) do
@@ -25,35 +25,38 @@ defmodule Gossip.Algorithms do
 		{:ok, args}
 	end
 
-	def handle_cast({:acknowledged, id, step}, {num_nodes, ac_list, fi_list, mstep}) do
+	def handle_cast({:acknowledged, id, step}, {topo, num_nodes, ac_list, fi_list, mstep}) do
 		#IO.inspect({:acknowledged, id})
 		new_list = Map.put(ac_list, id, 1)
-		if num_nodes == map_size(new_list) do
-			program_finish(Kernel.max(mstep, step))
+		if topo == "gossip" do
+			if num_nodes == map_size(new_list) do
+				program_finish(Kernel.max(mstep, step))
+			end
 		end
-		{:noreply, {num_nodes, new_list, fi_list, mstep}}
+		{:noreply, {topo, num_nodes, new_list, fi_list, mstep}}
 	end
 
-	def handle_cast({:finished, id, step}, {num_nodes, ac_list, fi_list, mstep}) do
+	def handle_cast({:finished, id, step}, {topo, num_nodes, ac_list, fi_list, mstep}) do
 		#IO.inspect({:finished, id, step})
 		new_list = Map.put(fi_list, id, 1)
-		if map_size(ac_list) == num_nodes do
+		if topo == "gossip" do
+			if map_size(ac_list) == map_size(new_list) do
+				program_finish(Kernel.max(mstep, step))
+			end
+		else
 			program_finish(Kernel.max(mstep, step))
 		end
-		if map_size(ac_list) == map_size(new_list) do
-			program_finish(Kernel.max(mstep, step))
-		end
-		{:noreply, {num_nodes, ac_list, new_list, Kernel.max(mstep, step)}}
+		{:noreply, {topo, num_nodes, ac_list, new_list, Kernel.max(mstep, step)}}
 	end
 
-	def handle_call({:start}, _, {num_nodes, ac_list, fi_list, mstep}) do
+	def handle_cast({:start}, {topo, num_nodes, ac_list, fi_list, mstep}) do
 		tar = Enum.random(1..num_nodes)
 		IO.puts "First send message to Node No.#{tar}"
 		Gossip.Node.send_message(tar, 0.0, 0.0, 0)
-		{:reply, nil, {num_nodes, ac_list, fi_list, mstep}}
+		{:noreply, {topo, num_nodes, ac_list, fi_list, mstep}}
 	end
 
-	def handle_cast({:finish, step}, {num_nodes, ac_list, fi_list, mstep}) do
+	def handle_cast({:finish, step}, {topo, num_nodes, ac_list, fi_list, mstep}) do
 		if map_size(ac_list) < num_nodes do
 			IO.puts "Some nodes haven't been told the message."
 			t = Enum.to_list(1..num_nodes) -- Map.keys(ac_list)
@@ -71,6 +74,6 @@ defmodule Gossip.Algorithms do
 		main = Process.whereis(:main)
 		send(main, :finish)
 		exit(:normal)
-		{:noreply, {num_nodes, ac_list, fi_list, mstep}}
+		{:noreply, {topo, num_nodes, ac_list, fi_list, mstep}}
 	end
 end
