@@ -11,8 +11,9 @@ defmodule Gossip.Topology do
 					build_3D(len, len*len*len, 1, 1, 1, 1)
 					len*len*len
 				"rand2D" -> 
-					pos = List.to_tuple Enum.map(1..num_nodes, fn(x) -> :rand.uniform end)
-					build_rand2D(num_nodes, 1, 2, pos)
+					posx = List.to_tuple Enum.map(1..num_nodes, fn(x) -> :rand.uniform end)
+					posy = List.to_tuple Enum.map(1..num_nodes, fn(x) -> :rand.uniform end)
+					build_rand2D(num_nodes, 1, 2, posx, posy)
 					num_nodes
 				"sphere" ->
 					len = Kernel.trunc(nth_root(2, num_nodes))
@@ -82,15 +83,17 @@ defmodule Gossip.Topology do
 		if x == len && y == len, do: build_3D(len, num_nodes, 1, 1, z+1, pos + 1)
 	end
 
-	def build_rand2D(num_nodes, p1, p2, pos) when p2 > num_nodes, do: nil
-	def build_rand2D(num_nodes, p1, p2, pos) do
-		if abs(elem(pos, p1 - 1) - elem(pos, p2 - 1)) < 0.1 do
+	def build_rand2D(num_nodes, p1, p2, posx, posy) when p2 > num_nodes, do: nil
+	def build_rand2D(num_nodes, p1, p2, posx, posy) do
+		disx = elem(posx, p1 - 1) - elem(posx, p2 - 1)
+		disy = elem(posy, p1 - 1) - elem(posy, p2 - 1)
+		if :math.sqrt(disx*disx + disy*disy) < 0.1 do
 			Gossip.Node.add_edge(p1, p2)
 		end
 		if p2 < num_nodes do
-			build_rand2D(num_nodes, p1, p2 + 1, pos)
+			build_rand2D(num_nodes, p1, p2 + 1, posx, posy)
 		else
-			build_rand2D(num_nodes, p1 + 1, p1 + 2, pos)
+			build_rand2D(num_nodes, p1 + 1, p1 + 2, posx, posy)
 		end
 	end
 
