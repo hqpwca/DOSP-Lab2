@@ -14,7 +14,7 @@ defmodule Gossip do
 			IO.puts "Final nodes after fitting in topology: #{numNodes}"
 			if failList != nil, do: IO.inspect failList, label: "Fail Nodes List: "
 
-			Gossip.Algorithms.start_link(numNodes, algorithm)
+			Gossip.Algorithms.start_link(numNodes, algorithm, failNodes)
 			{time,_} = :timer.tc(fn -> time_algs end)
 			IO.puts "Actual Time: #{time}"
 		end

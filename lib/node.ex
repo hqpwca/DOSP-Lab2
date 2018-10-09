@@ -47,24 +47,31 @@ defmodule Gossip.Node do
 				end
 				Gossip.Algorithms.finish(id, nstep)
 			end
-			{:noreply, {type, id, s, w, new_times, neighbors, nstep, fail}}
+			{:noreply, {type, id, s, w, new_times, neighbors, step, fail}}
 		else
-			if times == 0, do: Gossip.Algorithms.acknowledge(id, nstep)
-			new_times = 
-				if mw == 0.0 || Kernel.abs(ms/mw - s/w) > 1.0e-10 do
-					1
+			if !fail do
+				if times == 0, do: Gossip.Algorithms.acknowledge(id, nstep)
+				new_times = 
+					if mw == 0.0 || Kernel.abs(ms/mw - s/w) > 1.0e-10 do
+						1
+					else
+						times + 1
+					end
+				ns = s + ms
+				nw = w + mw
+				target = Enum.random(neighbors)
+				if new_times <= 3 do
+					send_message(target, ns/2, nw/2, nstep)
 				else
-					times + 1
+					Gossip.Algorithms.finish(id, nstep)
 				end
-			ns = s + ms
-			nw = w + mw
-			target = Enum.random(neighbors)
-			if new_times <= 3 && !fail do
-				send_message(target, ns/2, nw/2, nstep)
+				{:noreply, {type, id, ns/2, nw/2, new_times, neighbors, nstep, fail}}
 			else
-				Gossip.Algorithms.finish(id, nstep)
+				target = Enum.random(neighbors)
+				send_message(target, ms, mw, tstep)
+				{:noreply, {type, id, s, w, times, neighbors, step, fail}}
 			end
-			{:noreply, {type, id, ns/2, nw/2, new_times, neighbors, nstep, fail}}
+			
 		end
 	end
 
